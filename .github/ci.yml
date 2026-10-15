@@ -1,0 +1,28 @@
+# Name shown in the Actions tab
+name: CI
+
+# When to run: on every push to main, and on every pull request
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    # Run on a fresh Ubuntu machine
+    runs-on: ubuntu-latest
+    strategy:
+      # Matrix = run the whole job once per Python version listed here.
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      # Download the repo's code onto the machine
+      - uses: actions/checkout@v4
+      # Install the Python version for this matrix run
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # Install our package plus pytest
+      - run: pip install -e ".[dev]"
+      # Run the tests. If any fail, the job fails and shows a red X.
+      - run: pytest -v
