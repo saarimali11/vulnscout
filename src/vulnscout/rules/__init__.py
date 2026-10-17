@@ -2,12 +2,12 @@
 
 from .base import Rule
 from .eval_exec import EvalExecRule
+from .shell_injection import ShellInjectionRule
 
 # Every rule we write gets added to this list.
-# scanner.py loops over it, so a new rule only needs to be registered here.
 ALL_RULES: list[type[Rule]] = [
     EvalExecRule,
+    ShellInjectionRule,
 ]
 
-# __all__ controls what "from vulnscout.rules import *" exposes
-__all__ = ["Rule", "ALL_RULES", "EvalExecRule"]
+__all__ = ["Rule", "ALL_RULES", "EvalExecRule", "ShellInjectionRule"]
