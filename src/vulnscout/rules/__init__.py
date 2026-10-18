@@ -3,11 +3,16 @@
 from .base import Rule
 from .eval_exec import EvalExecRule
 from .shell_injection import ShellInjectionRule
+from .sql_injection import SqlInjectionRule
 
-# Every rule we write gets added to this list.
+# Every rule I write gets added to this list.
+# scanner.py loops over it, so a new rule only needs to be registered here.
 ALL_RULES: list[type[Rule]] = [
     EvalExecRule,
     ShellInjectionRule,
+    SqlInjectionRule,
 ]
 
-__all__ = ["Rule", "ALL_RULES", "EvalExecRule", "ShellInjectionRule"]
+__all__ = [
+    "Rule", "ALL_RULES", "EvalExecRule", "ShellInjectionRule", "SqlInjectionRule",
+]
