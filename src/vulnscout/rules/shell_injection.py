@@ -3,53 +3,48 @@
 # commands, e.g. "; rm -rf ~". That's OWASP A03 (Injection).
 #
 # What it catches:
-#   subprocess.run("...", shell=True)   (also call, check_call, check_output, Popen)
-#   os.system("...")
-#   os.popen("...")
-#
-# Known limitation: it only matches the "module.function" style. It won't see
-# "from subprocess import run" yet.
+# subprocess.run("...", shell=True)   (also call, check_call, check_output, Popen)
+# os.system("...")
+# os.popen("...")
+
 
 import ast
 
 from ..models import Severity
-from .base import Rule
+from .import_aware import ImportAwareRule
 
-# subprocess functions that accept a shell=True argument
-SUBPROCESS_FUNCS = {"run", "call", "check_call", "check_output", "Popen"}
+# Fully qualified names of subprocess functions that accept shell=True
+SUBPROCESS_NAMES = {
+    f"subprocess.{f}" for f in ("run", "call", "check_call", "check_output", "Popen")
+}
 
 # os functions that ALWAYS go through the shell, so they're always flagged
-OS_SHELL_FUNCS = {"system", "popen"}
+OS_SHELL_NAMES = {"os.system", "os.popen"}
 
 
-class ShellInjectionRule(Rule):
+class ShellInjectionRule(ImportAwareRule):
     id = "VS002"
     owasp = "A03:2021-Injection"
     severity = Severity.HIGH
 
     def visit_Call(self, node: ast.Call) -> None:
-        func = node.func
+        # Resolve the call target to its real name, however it was imported
+        name = self.qualified_name(node.func)
 
-        # I only care about calls shaped like  something.something(...)
-        # e.g. subprocess.run(...) is an Attribute whose value is the Name "subprocess"
-        if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
-            module = func.value.id # e.g. "subprocess"
-            name = func.attr # e.g. "run"
-
-            if module == "subprocess" and name in SUBPROCESS_FUNCS:
-                # subprocess is only risky when shell=True is passed
-                if self._has_shell_true(node):
-                    self.report(
-                        node,
-                        f"subprocess.{name}() with shell=True is vulnerable to "
-                        "command injection; pass a list of args instead",
-                    )
-            elif module == "os" and name in OS_SHELL_FUNCS:
+        if name in SUBPROCESS_NAMES:
+            # subprocess is only risky when shell=True is passed
+            if self._has_shell_true(node):
                 self.report(
                     node,
-                    f"os.{name}() runs its input through the shell; use "
-                    "subprocess.run([...]) with a list of args instead",
+                    f"{name}() with shell=True is vulnerable to command "
+                    "injection; pass a list of args instead",
                 )
+        elif name in OS_SHELL_NAMES:
+            self.report(
+                node,
+                f"{name}() runs its input through the shell; use "
+                "subprocess.run([...]) with a list of args instead",
+            )
 
         # Keep walking so calls nested inside this call are checked too
         self.generic_visit(node)
