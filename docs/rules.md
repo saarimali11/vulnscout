@@ -8,6 +8,7 @@
 | VS004 | A07:2021-Identification and Authentication Failures | High | Hardcoded passwords, API keys, tokens, and private keys (by name, known pattern, or entropy) |
 | VS005 | A02:2021-Cryptographic Failures | Medium | `hashlib.md5` / `hashlib.sha1` / `hashlib.new("md5")` (skips `usedforsecurity=False`) |
 | VS006 | A02:2021-Cryptographic Failures | High | `verify=False` on any call, `ssl._create_unverified_context()` |
+| VS007 | A08:2021-Software and Data Integrity Failures | High | `pickle`/`dill`/`marshal` loads, `shelve.open`, `pandas.read_pickle`, `yaml.load` without a safe Loader, `numpy.load(allow_pickle=True)` |
 
 ## VS001: eval/exec
 
@@ -107,3 +108,21 @@ requests.get(url, verify="ca.pem")      # or point at your own CA bundle
 ```
 
 Not covered yet: `ctx.check_hostname = False` and `ctx.verify_mode = ssl.CERT_NONE`.
+
+## VS007: unsafe deserialization
+
+Formats like pickle rebuild Python objects, so a crafted file can run any code as it loads.
+If the data could come from a user, a download, or a shared folder, that's remote code execution.
+
+```python
+# Bad
+obj = pickle.load(f)
+config = yaml.load(text)
+
+# Better
+obj = json.load(f)                  # plain data only
+config = yaml.safe_load(text)       # or yaml.load(text, Loader=yaml.SafeLoader)
+```
+
+Flags every `pickle.load`, even on files you wrote yourself, because the scanner can't
+know where data came from. Known limit: a Loader stored in a variable isn't checked.
