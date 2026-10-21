@@ -6,6 +6,8 @@
 | VS002 | A03:2021-Injection | High | `subprocess` with `shell=True`, `os.system`, `os.popen` |
 | VS003 | A03:2021-Injection | High | SQL built with f-strings, `+`, `%`, or `.format()` passed to `execute()` |
 | VS004 | A07:2021-Identification and Authentication Failures | High | Hardcoded passwords, API keys, tokens, and private keys (by name, known pattern, or entropy) |
+| VS005 | A02:2021-Cryptographic Failures | Medium | `hashlib.md5` / `hashlib.sha1` / `hashlib.new("md5")` (skips `usedforsecurity=False`) |
+| VS006 | A02:2021-Cryptographic Failures | High | `verify=False` on any call, `ssl._create_unverified_context()` |
 
 ## VS001: eval/exec
 
@@ -69,3 +71,39 @@ key headers), and long random-looking strings (Shannon entropy of 4.5+ bits/char
 
 Known limit: `token_type = "bearer"` is flagged because the name contains `token`.
 Inline suppression is planned.
+
+
+## VS005: weak hashes
+
+MD5 and SHA-1 have known collision attacks, so they shouldn't protect passwords,
+signatures, or integrity.
+
+```python
+# Bad
+hashlib.md5(password.encode())
+
+# Better
+hashlib.sha256(data)                    # general hashing
+# bcrypt / argon2 for passwords
+
+# Fine: a checksum or cache key that isn't security related
+hashlib.md5(data, usedforsecurity=False)
+```
+
+Understands import aliases (`import hashlib as h`, `from hashlib import md5`).
+
+## VS006: disabled TLS verification
+
+`verify=False` means the client accepts any certificate, so a man-in-the-middle can
+read and modify "secure" traffic.
+
+```python
+# Bad
+requests.get(url, verify=False)
+
+# Better
+requests.get(url)                       # verifies by default
+requests.get(url, verify="ca.pem")      # or point at your own CA bundle
+```
+
+Not covered yet: `ctx.check_hostname = False` and `ctx.verify_mode = ssl.CERT_NONE`.
