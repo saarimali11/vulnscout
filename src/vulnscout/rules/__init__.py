@@ -5,6 +5,8 @@ from .eval_exec import EvalExecRule
 from .shell_injection import ShellInjectionRule
 from .sql_injection import SqlInjectionRule
 from .hardcoded_secrets import HardcodedSecretsRule
+from .tls_verify import TlsVerificationRule
+from .weak_hash import WeakHashRule
 
 # Every rule I write gets added to this list.
 # scanner.py loops over it, so a new rule only needs to be registered here.
@@ -13,9 +15,12 @@ ALL_RULES: list[type[Rule]] = [
     ShellInjectionRule,
     SqlInjectionRule,
     HardcodedSecretsRule,
+    WeakHashRule,
+    TlsVerificationRule,
 ]
 
 __all__ = [
     "Rule", "ALL_RULES", "EvalExecRule", "ShellInjectionRule",
-    "SqlInjectionRule", "HardcodedSecretsRule",
+    "SqlInjectionRule", "HardcodedSecretsRule", "WeakHashRule",
+    "TlsVerificationRule",
 ]
